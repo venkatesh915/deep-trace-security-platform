@@ -1,0 +1,145 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  MANAGER
+  USER
+}
+
+enum CampaignStatus {
+  DRAFT
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum EventType {
+  LOGIN
+  FAILED_LOGIN
+  SUSPICIOUS_ACTIVITY
+  UNAUTHORIZED_ACCESS
+  MALWARE
+  DATA_ACCESS
+  SYSTEM_ALERT
+}
+
+enum Severity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum EventStatus {
+  OPEN
+  INVESTIGATING
+  RESOLVED
+}
+
+model Organization {
+  id             Int             @id @default(autoincrement())
+  name           String
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  users          User[]
+  campaigns      Campaign[]
+  securityEvents SecurityEvent[]
+  auditLogs      AuditLog[]
+
+  @@map("organizations")
+}
+
+model User {
+  id                  Int            @id @default(autoincrement())
+  organizationId      Int
+  name                String
+  email               String         @unique
+  passwordHash        String
+  role                Role           @default(USER)
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  organization        Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  campaignsCreated    Campaign[]     @relation("CampaignCreator")
+  campaignAssignments CampaignUser[]
+  auditLogs           AuditLog[]
+
+  @@index([organizationId])
+  @@index([email])
+  @@map("users")
+}
+
+model Campaign {
+  id             Int            @id @default(autoincrement())
+  organizationId Int
+  name           String
+  description    String?
+  status         CampaignStatus @default(DRAFT)
+  createdBy      Int
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  creator        User           @relation("CampaignCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+  assignments    CampaignUser[]
+
+  @@index([organizationId])
+  @@index([status])
+  @@map("campaigns")
+}
+
+model CampaignUser {
+  campaignId Int
+  userId     Int
+  assignedAt DateTime @default(now())
+
+  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([campaignId, userId])
+  @@map("campaign_users")
+}
+
+model SecurityEvent {
+  id             Int         @id @default(autoincrement())
+  organizationId Int
+  eventType      EventType
+  severity       Severity
+  status         EventStatus @default(OPEN)
+  description    String
+  createdAt      DateTime    @default(now())
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([severity])
+  @@index([status])
+  @@index([createdAt])
+  @@map("security_events")
+}
+
+model AuditLog {
+  id             Int          @id @default(autoincrement())
+  organizationId Int
+  userId         Int?
+  action         String
+  entity         String
+  entityId       String?
+  description    String
+  createdAt      DateTime     @default(now())
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}

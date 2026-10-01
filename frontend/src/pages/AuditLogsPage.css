@@ -1,0 +1,80 @@
+.audit-logs-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.audit-action-pill {
+  font-family: var(--font-mono);
+  font-size: 0.725rem;
+  font-weight: 700;
+  padding: 0.2rem 0.55rem;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.action-danger {
+  background-color: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.action-success {
+  background-color: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+}
+
+.action-info {
+  background-color: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+}
+
+.actor-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.actor-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.actor-email {
+  font-size: 0.725rem;
+  color: var(--text-muted);
+}
+
+.system-actor {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.entity-tag {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.entity-id-tag {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.audit-desc-cell {
+  font-size: 0.85rem;
+  color: var(--text-main);
+  max-width: 380px;
+  line-height: 1.4;
+}
+
+.audit-time-cell {
+  font-size: 0.775rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}

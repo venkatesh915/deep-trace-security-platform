@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  # Local PostgreSQL instance for developers who want to run without hosted Supabase
+  postgres:
+    image: postgres:16-alpine
+    container_name: deeptrace_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: secure_dev_password_123
+      POSTGRES_DB: deeptrace_security
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Express REST API Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: deeptrace_backend
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      PORT: 5000
+      DATABASE_URL: "postgresql://postgres:secure_dev_password_123@postgres:5432/deeptrace_security?schema=public"
+      JWT_SECRET: "deeptrace-production-assessment-jwt-secret-key-32chars"
+      JWT_EXPIRES_IN: "1h"
+      FRONTEND_URL: "http://localhost:5173"
+      NODE_ENV: "production"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # React + Vite Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: deeptrace_frontend
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_URL: "http://localhost:5000/api"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
