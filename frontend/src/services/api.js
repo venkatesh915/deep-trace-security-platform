@@ -1,8 +1,21 @@
 import axios from 'axios';
 
+// Normalize API baseURL to reliably include '/api' regardless of how VITE_API_URL was set in deployment
+const getBaseUrl = () => {
+  const raw = import.meta.env.VITE_API_URL;
+  if (!raw || !raw.trim()) {
+    return 'http://localhost:5000/api';
+  }
+  let url = raw.trim().replace(/\/+$/, '');
+  if (!url.endsWith('/api')) {
+    url = `${url}/api`;
+  }
+  return url;
+};
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
-  timeout: 10000,
+  baseURL: getBaseUrl(),
+  timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
   },

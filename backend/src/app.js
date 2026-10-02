@@ -50,14 +50,14 @@ app.use(
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
-// Apply general API rate limiting to all /api routes
-app.use('/api', apiLimiter);
+// Apply general API rate limiting to all /api and root routes
+app.use(['/api', '/auth', '/campaigns', '/security-events', '/users', '/audit-logs', '/dashboard'], apiLimiter);
 
 // API Documentation via Swagger UI
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.use(['/api-docs', '/docs'], swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-// Healthcheck endpoint
-app.get('/api/health', (req, res) => {
+// Healthcheck endpoint (supports /api/health, /health, /)
+app.get(['/api/health', '/health', '/'], (req, res) => {
   res.status(200).json({
     status: 'UP',
     timestamp: new Date().toISOString(),
@@ -66,13 +66,13 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Primary REST API routes
-app.use('/api/auth', authRoutes);
-app.use('/api/campaigns', campaignRoutes);
-app.use('/api/security-events', securityEventRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/audit-logs', auditLogRoutes);
-app.use('/api/dashboard', dashboardRoutes);
+// Primary REST API routes (supports both /api/<resource> and /<resource>)
+app.use(['/api/auth', '/auth'], authRoutes);
+app.use(['/api/campaigns', '/campaigns'], campaignRoutes);
+app.use(['/api/security-events', '/security-events'], securityEventRoutes);
+app.use(['/api/users', '/users'], userRoutes);
+app.use(['/api/audit-logs', '/audit-logs'], auditLogRoutes);
+app.use(['/api/dashboard', '/dashboard'], dashboardRoutes);
 
 // Catch undefined routes (404)
 app.use(notFoundHandler);
