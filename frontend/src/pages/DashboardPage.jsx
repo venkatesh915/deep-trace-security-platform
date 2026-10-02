@@ -54,9 +54,11 @@ export const DashboardPage = () => {
             <Building2 size={15} />
             <span>ORGANIZATION TENANT CONTEXT</span>
           </div>
-          <h2 className="banner-title">Welcome back, {user?.name}</h2>
+          <h2 className="banner-title">
+            {new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 17 ? 'Good afternoon' : 'Good evening'}, {user?.name?.split(' ')[0] || user?.name}
+          </h2>
           <p className="banner-subtitle">
-            Authenticated to <strong>{user?.organizationName}</strong> (Tenant ID #{user?.organizationId}).
+            Here's what's happening across <strong>{user?.organizationName}</strong> (Tenant ID #{user?.organizationId}).
             All displayed metrics, campaigns, and security events are strictly isolated to your organization.
           </p>
         </div>

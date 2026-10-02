@@ -341,6 +341,15 @@ async function main() {
     ],
   });
 
+  // 11. Synchronize PostgreSQL autoincrement sequences with explicit seed IDs
+  const tables = ['organizations', 'users', 'campaigns', 'security_events', 'audit_logs'];
+  for (const table of tables) {
+    await prisma.$executeRawUnsafe(
+      `SELECT setval(pg_get_serial_sequence('${table}', 'id'), COALESCE((SELECT MAX(id) FROM "${table}"), 1), true)`
+    );
+  }
+  console.log('Synchronized PostgreSQL autoincrement sequences.');
+
   console.log('Created initial Audit Logs.');
   console.log('--- Database Seeding Completed Successfully! ---');
 }

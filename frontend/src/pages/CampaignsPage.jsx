@@ -185,18 +185,16 @@ export const CampaignsPage = () => {
       {/* Top action bar */}
       <div className="page-header-row">
         <div>
-          <h2 className="page-title">Security Campaigns</h2>
+          <h2 className="page-title">Campaigns</h2>
           <p className="page-desc">
-            {user?.role === 'USER'
-              ? 'Security awareness and compliance campaigns assigned to your profile.'
-              : `Manage organization campaigns for ${user?.organizationName}.`}
+            Manage security campaigns across your organization.
           </p>
         </div>
 
         {canManageCampaigns && (
           <button className="btn-primary" onClick={handleOpenCreate}>
             <Plus size={16} />
-            <span>New Campaign</span>
+            <span>Create Campaign</span>
           </button>
         )}
       </div>
@@ -311,7 +309,14 @@ export const CampaignsPage = () => {
                   </td>
                   <td>
                     <div className="campaign-name-cell">
-                      <div className="campaign-name">{camp.name}</div>
+                      <button
+                        type="button"
+                        className="entity-link-btn"
+                        onClick={() => navigate(`/campaigns/${camp.id}`)}
+                        title={`Open details for "${camp.name}"`}
+                      >
+                        {camp.name}
+                      </button>
                       {camp.description && (
                         <div className="campaign-desc-sub">{camp.description}</div>
                       )}
@@ -335,28 +340,34 @@ export const CampaignsPage = () => {
                   <td style={{ textAlign: 'right' }}>
                     <div className="actions-cell">
                       <button
-                        className="action-btn view"
+                        type="button"
+                        className="btn-action btn-action-view"
                         title="View Details & Assignments"
                         onClick={() => navigate(`/campaigns/${camp.id}`)}
                       >
-                        <Eye size={15} />
+                        <Eye size={14} />
+                        <span>View</span>
                       </button>
 
                       {canManageCampaigns && (
                         <>
                           <button
-                            className="action-btn edit"
+                            type="button"
+                            className="btn-action btn-action-edit"
                             title="Edit Campaign"
                             onClick={() => handleOpenEdit(camp)}
                           >
-                            <Edit2 size={15} />
+                            <Edit2 size={14} />
+                            <span>Edit</span>
                           </button>
                           <button
-                            className="action-btn delete"
+                            type="button"
+                            className="btn-action btn-action-delete"
                             title="Delete Campaign"
                             onClick={() => handleOpenDelete(camp)}
                           >
-                            <Trash2 size={15} />
+                            <Trash2 size={14} />
+                            <span>Delete</span>
                           </button>
                         </>
                       )}
@@ -531,7 +542,8 @@ export const CampaignsPage = () => {
               onClick={handleDeleteConfirm}
               disabled={formSubmitting}
             >
-              {formSubmitting ? 'Deleting...' : 'Delete Campaign'}
+              <Trash2 size={14} />
+              <span>{formSubmitting ? 'Deleting...' : 'Delete Campaign'}</span>
             </button>
           </div>
         </div>

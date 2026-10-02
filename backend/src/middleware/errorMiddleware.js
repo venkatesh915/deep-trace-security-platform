@@ -9,12 +9,17 @@ const errorHandler = (err, req, res, next) => {
     return next(err);
   }
 
-  console.error('Unhandled Server Error:', {
-    message: err.message,
-    stack: process.env.NODE_ENV !== 'production' ? err.stack : undefined,
-    url: req.originalUrl,
-    method: req.method,
-  });
+  const statusCode = err.statusCode || (err.status ? Number(err.status) : 500);
+  const message = err.message || 'Internal Server Error';
+
+  if (statusCode >= 500) {
+    console.error('Unhandled Server Error:', {
+      message: err.message,
+      stack: process.env.NODE_ENV !== 'production' ? err.stack : undefined,
+      url: req.originalUrl,
+      method: req.method,
+    });
+  }
 
   // Handle Prisma unique constraint violations (code P2002)
   if (err.code === 'P2002') {
@@ -32,14 +37,11 @@ const errorHandler = (err, req, res, next) => {
     return errorResponse(res, 400, 'Malformed JSON in request body.');
   }
 
-  const statusCode = err.statusCode || (err.status ? Number(err.status) : 500);
-  const message = err.message || 'Internal Server Error';
-
   return errorResponse(
     res,
     statusCode >= 400 && statusCode < 600 ? statusCode : 500,
     message,
-    process.env.NODE_ENV === 'development' ? { stack: err.stack } : null
+    statusCode >= 500 && process.env.NODE_ENV === 'development' ? { stack: err.stack } : null
   );
 };
 

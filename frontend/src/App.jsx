@@ -9,6 +9,7 @@ import { CampaignDetailPage } from './pages/CampaignDetailPage';
 import { SecurityEventsPage } from './pages/SecurityEventsPage';
 import { UsersPage } from './pages/UsersPage';
 import { AuditLogsPage } from './pages/AuditLogsPage';
+import { ProfilePage } from './pages/ProfilePage';
 import { NotFoundPage } from './pages/NotFoundPage';
 
 // Protected Route Guard
@@ -85,6 +86,7 @@ export const App = () => {
             <Route path="security-events" element={<SecurityEventsPage />} />
             <Route path="users" element={<UsersPage />} />
             <Route path="audit-logs" element={<AuditLogsPage />} />
+            <Route path="profile" element={<ProfilePage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
         </Routes>

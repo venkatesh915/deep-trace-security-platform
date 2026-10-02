@@ -6,16 +6,18 @@ import {
   Shield,
   Trash2,
   Edit2,
+  Eye,
   CheckCircle2,
   AlertCircle,
   Lock,
+  Building2,
 } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { RoleBadge } from '../components/Badge';
 import { Pagination } from '../components/Pagination';
 import { Modal } from '../components/Modal';
-import { formatDate } from '../utils/formatters';
+import { formatDate, formatDateTime } from '../utils/formatters';
 import './UsersPage.css';
 
 export const UsersPage = () => {
@@ -34,6 +36,7 @@ export const UsersPage = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
 
   // Forms state
@@ -87,6 +90,12 @@ export const UsersPage = () => {
     fetchUsers();
   };
 
+  // Open View Details
+  const handleOpenView = (targetUser) => {
+    setSelectedUser(targetUser);
+    setIsViewModalOpen(true);
+  };
+
   // Open Create
   const handleOpenCreate = () => {
     setFormData({ name: '', email: '', password: '', role: 'USER' });
@@ -105,7 +114,13 @@ export const UsersPage = () => {
     setFormSubmitting(true);
     setFormError('');
     try {
-      const res = await api.post('/users', formData);
+      // Send only required fields without id or organizationId (server enforces tenant from JWT)
+      const res = await api.post('/users', {
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        password: formData.password,
+        role: formData.role,
+      });
       if (res.data.success) {
         setIsCreateModalOpen(false);
         setSuccessMessage(`User ${res.data.data.email} provisioned successfully!`);
@@ -137,7 +152,7 @@ export const UsersPage = () => {
     setFormError('');
     try {
       const res = await api.patch(`/users/${selectedUser.id}`, {
-        name: formData.name,
+        name: formData.name.trim(),
         role: formData.role,
       });
       if (res.data.success) {
@@ -155,22 +170,19 @@ export const UsersPage = () => {
 
   // Open Delete
   const handleOpenDelete = (targetUser) => {
-    if (targetUser.id === user?.id) {
-      alert('Action Blocked: Self-deletion is prohibited for safety.');
-      return;
-    }
     setSelectedUser(targetUser);
     setIsDeleteModalOpen(true);
   };
 
   // Confirm Delete
   const handleDeleteConfirm = async () => {
+    if (!selectedUser) return;
     setFormSubmitting(true);
     try {
       const res = await api.delete(`/users/${selectedUser.id}`);
       if (res.data.success) {
         setIsDeleteModalOpen(false);
-        setSuccessMessage('User deleted successfully.');
+        setSuccessMessage(`User ${selectedUser.email} removed from organization.`);
         setTimeout(() => setSuccessMessage(''), 4000);
         fetchUsers();
       }
@@ -186,9 +198,9 @@ export const UsersPage = () => {
       {/* Header */}
       <div className="page-header-row">
         <div>
-          <h2 className="page-title">User Management &amp; Access Control</h2>
+          <h2 className="page-title">User Management</h2>
           <p className="page-desc">
-            Manage organization members, roles, and administrative privileges for {user?.organizationName}.
+            Manage organization users and access roles.
           </p>
         </div>
 
@@ -220,7 +232,7 @@ export const UsersPage = () => {
             <Search size={16} className="search-icon" />
             <input
               type="text"
-              placeholder="Search by name or email..."
+              placeholder="Search users by name or email address..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -258,7 +270,14 @@ export const UsersPage = () => {
                     <span className="code-id">#{u.id}</span>
                   </td>
                   <td>
-                    <strong>{u.name}</strong>
+                    <button
+                      type="button"
+                      className="entity-link-btn"
+                      onClick={() => handleOpenView(u)}
+                      title={`View details for ${u.name}`}
+                    >
+                      {u.name}
+                    </button>
                     {u.id === user?.id && <span className="you-pill">YOU</span>}
                   </td>
                   <td>{u.email}</td>
@@ -269,19 +288,32 @@ export const UsersPage = () => {
                   <td style={{ textAlign: 'right' }}>
                     <div className="actions-cell">
                       <button
-                        className="action-btn edit"
-                        title="Edit Role / Name"
-                        onClick={() => handleOpenEdit(u)}
+                        type="button"
+                        className="btn-action btn-action-view"
+                        title="View User Details"
+                        onClick={() => handleOpenView(u)}
                       >
-                        <Edit2 size={15} />
+                        <Eye size={14} />
+                        <span>View</span>
                       </button>
                       <button
-                        className="action-btn delete"
+                        type="button"
+                        className="btn-action btn-action-edit"
+                        title="Edit User Role"
+                        onClick={() => handleOpenEdit(u)}
+                      >
+                        <Edit2 size={14} />
+                        <span>Edit</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-action btn-action-delete"
                         title="Delete User"
                         disabled={u.id === user?.id}
                         onClick={() => handleOpenDelete(u)}
                       >
-                        <Trash2 size={15} />
+                        <Trash2 size={14} />
+                        <span>Delete</span>
                       </button>
                     </div>
                   </td>
@@ -305,7 +337,7 @@ export const UsersPage = () => {
       <Modal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
-        title="Provision New Organization User"
+        title="Provision User"
       >
         <form onSubmit={handleCreateSubmit} className="modal-form">
           {formError && (
@@ -354,9 +386,9 @@ export const UsersPage = () => {
               value={formData.role}
               onChange={(e) => setFormData({ ...formData, role: e.target.value })}
             >
-              <option value="USER">USER (Standard User / Member)</option>
-              <option value="MANAGER">MANAGER (Campaign &amp; Security Manager)</option>
-              <option value="ADMIN">ADMIN (Full Organization Administrator)</option>
+              <option value="USER">USER (Standard Member)</option>
+              <option value="MANAGER">MANAGER (Campaign &amp; Incident Manager)</option>
+              <option value="ADMIN">ADMIN (Full Tenant Administrator)</option>
             </select>
           </div>
 
@@ -379,7 +411,7 @@ export const UsersPage = () => {
       <Modal
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
-        title={`Edit User: ${selectedUser?.email}`}
+        title={`Edit User Profile — ${selectedUser?.name}`}
       >
         <form onSubmit={handleEditSubmit} className="modal-form">
           {formError && (
@@ -393,6 +425,7 @@ export const UsersPage = () => {
             <label className="form-label">Full Name</label>
             <input
               type="text"
+              required
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             />
@@ -419,23 +452,84 @@ export const UsersPage = () => {
               Cancel
             </button>
             <button type="submit" className="btn-primary" disabled={formSubmitting}>
-              {formSubmitting ? 'Saving...' : 'Update Role'}
+              {formSubmitting ? 'Saving...' : 'Save Changes'}
             </button>
           </div>
         </form>
+      </Modal>
+
+      {/* VIEW USER DETAILS MODAL */}
+      <Modal
+        isOpen={isViewModalOpen}
+        onClose={() => setIsViewModalOpen(false)}
+        title="User Details & Access Scope"
+        maxWidth="500px"
+      >
+        {selectedUser && (
+          <div className="modal-form">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
+              <div>
+                <label className="form-label" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>User ID</label>
+                <div style={{ fontWeight: 700, fontFamily: 'var(--font-mono)' }}>#{selectedUser.id}</div>
+              </div>
+              <div>
+                <label className="form-label" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Role Scope</label>
+                <div><RoleBadge role={selectedUser.role} /></div>
+              </div>
+              <div>
+                <label className="form-label" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Full Name</label>
+                <div style={{ fontWeight: 600 }}>{selectedUser.name}</div>
+              </div>
+              <div>
+                <label className="form-label" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Email Address</label>
+                <div style={{ fontSize: '0.875rem' }}>{selectedUser.email}</div>
+              </div>
+              <div>
+                <label className="form-label" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Organization</label>
+                <div style={{ fontSize: '0.85rem' }}>Tenant ID #{selectedUser.organizationId}</div>
+              </div>
+              <div>
+                <label className="form-label" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Enrolled On</label>
+                <div style={{ fontSize: '0.85rem' }}>{formatDate(selectedUser.createdAt)}</div>
+              </div>
+            </div>
+
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => {
+                  setIsViewModalOpen(false);
+                  handleOpenEdit(selectedUser);
+                }}
+              >
+                <Edit2 size={14} />
+                <span>Edit User</span>
+              </button>
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={() => setIsViewModalOpen(false)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
       </Modal>
 
       {/* DELETE CONFIRMATION MODAL */}
       <Modal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
-        title="Confirm User Deletion"
-        maxWidth="450px"
+        title="Delete User?"
+        maxWidth="460px"
       >
         <div className="modal-form">
-          <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-            Are you sure you want to remove user <strong>"{selectedUser?.name}"</strong> ({selectedUser?.email})?
-            This will immediately invalidate any future sessions for this user.
+          <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+            Are you sure you want to delete user <strong>"{selectedUser?.name}"</strong> ({selectedUser?.email})?
+            <br /><br />
+            <span style={{ color: '#b91c1c', fontWeight: 600 }}>This action cannot be undone.</span>
           </p>
 
           <div className="modal-actions">
@@ -452,7 +546,8 @@ export const UsersPage = () => {
               onClick={handleDeleteConfirm}
               disabled={formSubmitting}
             >
-              {formSubmitting ? 'Deleting...' : 'Delete User'}
+              <Trash2 size={14} />
+              <span>{formSubmitting ? 'Deleting...' : 'Delete User'}</span>
             </button>
           </div>
         </div>

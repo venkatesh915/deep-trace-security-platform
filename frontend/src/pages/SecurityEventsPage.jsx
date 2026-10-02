@@ -9,6 +9,10 @@ import {
   Clock,
   ShieldAlert,
   ArrowUpDown,
+  Eye,
+  Edit2,
+  Building2,
+  X,
 } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -37,6 +41,7 @@ export const SecurityEventsPage = () => {
   // Modals state
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
 
   // Form states
@@ -84,6 +89,12 @@ export const SecurityEventsPage = () => {
     fetchEvents();
   };
 
+  // Open Details Modal
+  const handleOpenDetails = (event) => {
+    setSelectedEvent(event);
+    setIsDetailsModalOpen(true);
+  };
+
   // Create Event Submit
   const handleCreateSubmit = async (e) => {
     e.preventDefault();
@@ -95,7 +106,12 @@ export const SecurityEventsPage = () => {
     setFormSubmitting(true);
     setFormError('');
     try {
-      const res = await api.post('/security-events', formData);
+      // Send only required fields; database generates ID and derives tenant from session
+      const res = await api.post('/security-events', {
+        eventType: formData.eventType,
+        severity: formData.severity,
+        description: formData.description.trim(),
+      });
       if (res.data.success) {
         setIsCreateModalOpen(false);
         setFormData({
@@ -104,7 +120,7 @@ export const SecurityEventsPage = () => {
           status: 'OPEN',
           description: '',
         });
-        setSuccessMessage('Security event reported and audit logged!');
+        setSuccessMessage('✓ Security event reported successfully.');
         setTimeout(() => setSuccessMessage(''), 4000);
         fetchEvents();
       }
@@ -136,10 +152,11 @@ export const SecurityEventsPage = () => {
       const res = await api.patch(`/security-events/${selectedEvent.id}`, {
         status: formData.status,
         severity: formData.severity,
+        description: formData.description,
       });
       if (res.data.success) {
         setIsUpdateModalOpen(false);
-        setSuccessMessage(`Event #${selectedEvent.id} updated successfully!`);
+        setSuccessMessage(`✓ Security incident #${selectedEvent.id} updated successfully.`);
         setTimeout(() => setSuccessMessage(''), 4000);
         fetchEvents();
       }
@@ -155,9 +172,9 @@ export const SecurityEventsPage = () => {
       {/* Header */}
       <div className="page-header-row">
         <div>
-          <h2 className="page-title">Security Events &amp; Incidents</h2>
+          <h2 className="page-title">Security Events</h2>
           <p className="page-desc">
-            Continuous threat telemetry and security incidents recorded for {user?.organizationName}.
+            Monitor and investigate security incidents.
           </p>
         </div>
 
@@ -191,13 +208,13 @@ export const SecurityEventsPage = () => {
             <Search size={16} className="search-icon" />
             <input
               type="text"
-              placeholder="Search event descriptions or telemetry..."
+              placeholder="Search security events by description or telemetry..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
           <button type="submit" className="btn-secondary">
-            Filter
+            Search
           </button>
         </form>
 
@@ -236,7 +253,7 @@ export const SecurityEventsPage = () => {
           </div>
 
           <div className="filter-item">
-            <label>Type:</label>
+            <label>Event Type:</label>
             <select
               value={eventTypeFilter}
               onChange={(e) => {
@@ -244,7 +261,7 @@ export const SecurityEventsPage = () => {
                 setPage(1);
               }}
             >
-              <option value="ALL">All Types</option>
+              <option value="ALL">All Event Types</option>
               <option value="MALWARE">MALWARE</option>
               <option value="SUSPICIOUS_ACTIVITY">SUSPICIOUS_ACTIVITY</option>
               <option value="UNAUTHORIZED_ACCESS">UNAUTHORIZED_ACCESS</option>
@@ -266,9 +283,9 @@ export const SecurityEventsPage = () => {
               <th>Event Type</th>
               <th>Severity</th>
               <th>Status</th>
-              <th>Description</th>
+              <th>Description &amp; Telemetry</th>
               <th>Timestamp</th>
-              {canManageCampaigns && <th style={{ textAlign: 'right' }}>Action</th>}
+              <th style={{ textAlign: 'right' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -285,7 +302,14 @@ export const SecurityEventsPage = () => {
                     <span className="code-id">#{ev.id}</span>
                   </td>
                   <td>
-                    <span className="event-type-badge">{ev.eventType}</span>
+                    <button
+                      type="button"
+                      className="entity-link-btn"
+                      onClick={() => handleOpenDetails(ev)}
+                      title={`Open full details for event #${ev.id}`}
+                    >
+                      {ev.eventType}
+                    </button>
                   </td>
                   <td>
                     <SeverityBadge severity={ev.severity} />
@@ -297,22 +321,36 @@ export const SecurityEventsPage = () => {
                     <div className="event-desc-cell">{ev.description}</div>
                   </td>
                   <td className="event-time-cell">{formatDateTime(ev.createdAt)}</td>
-                  {canManageCampaigns && (
-                    <td style={{ textAlign: 'right' }}>
+                  <td style={{ textAlign: 'right' }}>
+                    <div className="actions-cell">
                       <button
-                        className="btn-secondary update-event-btn"
-                        onClick={() => handleOpenUpdate(ev)}
+                        type="button"
+                        className="btn-action btn-action-view"
+                        onClick={() => handleOpenDetails(ev)}
+                        title="View Full Telemetry Details"
                       >
-                        Update
+                        <Eye size={14} />
+                        <span>View</span>
                       </button>
-                    </td>
-                  )}
+                      {canManageCampaigns && (
+                        <button
+                          type="button"
+                          className="btn-action btn-action-edit"
+                          onClick={() => handleOpenUpdate(ev)}
+                          title="Update Incident Status"
+                        >
+                          <Edit2 size={14} />
+                          <span>Update</span>
+                        </button>
+                      )}
+                    </div>
+                  </td>
                 </tr>
               ))
             ) : (
               <tr>
                 <td colSpan="7" className="table-empty">
-                  No security events recorded matching your query.
+                  No security events found matching your filters.
                 </td>
               </tr>
             )}
@@ -323,7 +361,7 @@ export const SecurityEventsPage = () => {
         <Pagination pagination={pagination} onPageChange={(p) => setPage(p)} />
       </div>
 
-      {/* CREATE EVENT MODAL */}
+      {/* REPORT EVENT MODAL */}
       <Modal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
@@ -343,8 +381,8 @@ export const SecurityEventsPage = () => {
               value={formData.eventType}
               onChange={(e) => setFormData({ ...formData, eventType: e.target.value })}
             >
-              <option value="SUSPICIOUS_ACTIVITY">SUSPICIOUS_ACTIVITY</option>
               <option value="MALWARE">MALWARE</option>
+              <option value="SUSPICIOUS_ACTIVITY">SUSPICIOUS_ACTIVITY</option>
               <option value="UNAUTHORIZED_ACCESS">UNAUTHORIZED_ACCESS</option>
               <option value="DATA_ACCESS">DATA_ACCESS</option>
               <option value="FAILED_LOGIN">FAILED_LOGIN</option>
@@ -386,7 +424,7 @@ export const SecurityEventsPage = () => {
               Cancel
             </button>
             <button type="submit" className="btn-primary" disabled={formSubmitting}>
-              {formSubmitting ? 'Submitting...' : 'Log Security Incident'}
+              {formSubmitting ? 'Reporting...' : 'Report Event'}
             </button>
           </div>
         </form>
@@ -431,6 +469,15 @@ export const SecurityEventsPage = () => {
             </select>
           </div>
 
+          <div className="form-group">
+            <label className="form-label">Telemetry &amp; Forensic Notes</label>
+            <textarea
+              rows={3}
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            />
+          </div>
+
           <div className="modal-actions">
             <button
               type="button"
@@ -444,6 +491,76 @@ export const SecurityEventsPage = () => {
             </button>
           </div>
         </form>
+      </Modal>
+
+      {/* EVENT DETAILS MODAL */}
+      <Modal
+        isOpen={isDetailsModalOpen}
+        onClose={() => setIsDetailsModalOpen(false)}
+        title={`Security Incident Details #${selectedEvent?.id}`}
+        maxWidth="600px"
+      >
+        {selectedEvent && (
+          <div className="modal-form">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
+              <div>
+                <label className="form-label" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Event Type</label>
+                <div style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '0.95rem' }}>{selectedEvent.eventType}</div>
+              </div>
+              <div>
+                <label className="form-label" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Severity Level</label>
+                <div><SeverityBadge severity={selectedEvent.severity} /></div>
+              </div>
+              <div>
+                <label className="form-label" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Current Status</label>
+                <div><StatusBadge status={selectedEvent.status} /></div>
+              </div>
+              <div>
+                <label className="form-label" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Recorded Timestamp</label>
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-main)' }}>{formatDateTime(selectedEvent.createdAt)}</div>
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Incident Telemetry &amp; Description</label>
+              <div style={{
+                padding: '0.85rem',
+                backgroundColor: '#f8fafc',
+                border: '1px solid var(--border-light)',
+                borderRadius: '8px',
+                fontSize: '0.875rem',
+                lineHeight: 1.6,
+                color: 'var(--text-main)',
+                fontFamily: 'inherit',
+              }}>
+                {selectedEvent.description}
+              </div>
+            </div>
+
+            <div className="modal-actions">
+              {canManageCampaigns && (
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => {
+                    setIsDetailsModalOpen(false);
+                    handleOpenUpdate(selectedEvent);
+                  }}
+                >
+                  <Edit2 size={14} />
+                  <span>Update Incident Status</span>
+                </button>
+              )}
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={() => setIsDetailsModalOpen(false)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );

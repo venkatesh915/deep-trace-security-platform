@@ -15,7 +15,12 @@ export const SeverityBadge = ({ severity }) => {
   if (severity === 'HIGH') badgeClass = 'badge-sev-high';
   if (severity === 'MEDIUM') badgeClass = 'badge-sev-medium';
 
-  return <span className={`badge ${badgeClass}`}>{severity}</span>;
+  return (
+    <span className={`badge ${badgeClass}`}>
+      <span className="badge-dot">●</span>
+      <span>{severity}</span>
+    </span>
+  );
 };
 
 export const StatusBadge = ({ status }) => {
@@ -25,5 +30,10 @@ export const StatusBadge = ({ status }) => {
   if (status === 'COMPLETED') badgeClass = 'badge-status-info';
   if (status === 'CANCELLED' || status === 'OPEN') badgeClass = 'badge-status-danger';
 
-  return <span className={`badge ${badgeClass}`}>{status}</span>;
+  return (
+    <span className={`badge ${badgeClass}`}>
+      <span className="badge-dot">●</span>
+      <span>{status}</span>
+    </span>
+  );
 };

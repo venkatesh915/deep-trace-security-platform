@@ -11,6 +11,13 @@
   white-space: nowrap;
 }
 
+.badge-dot {
+  display: inline-block;
+  font-size: 0.55rem;
+  margin-right: 0.35rem;
+  line-height: 1;
+}
+
 /* Role Badges */
 .badge-role-admin {
   background-color: #ede9fe;

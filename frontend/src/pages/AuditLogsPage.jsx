@@ -8,10 +8,13 @@ import {
   Shield,
   CheckCircle2,
   AlertCircle,
+  Eye,
+  Building2,
 } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { Pagination } from '../components/Pagination';
+import { Modal } from '../components/Modal';
 import { formatDateTime } from '../utils/formatters';
 import './AuditLogsPage.css';
 
@@ -26,6 +29,10 @@ export const AuditLogsPage = () => {
   const [page, setPage] = useState(1);
   const [actionFilter, setActionFilter] = useState('ALL');
   const [search, setSearch] = useState('');
+
+  // Details modal
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [selectedLog, setSelectedLog] = useState(null);
 
   // Frontend RBAC Protection (backed up by backend 403 API response)
   if (!canAccessAuditLogs) {
@@ -75,14 +82,19 @@ export const AuditLogsPage = () => {
     fetchAuditLogs();
   };
 
+  const handleOpenDetails = (log) => {
+    setSelectedLog(log);
+    setIsDetailsModalOpen(true);
+  };
+
   return (
     <div className="audit-logs-page">
       {/* Header */}
       <div className="page-header-row">
         <div>
-          <h2 className="page-title">Tenant Audit Trail &amp; Governance</h2>
+          <h2 className="page-title">Audit Logs</h2>
           <p className="page-desc">
-            Immutable log of all administrative actions, authentication attempts, and campaign operations for {user?.organizationName}.
+            Review important actions performed within your organization.
           </p>
         </div>
       </div>
@@ -101,13 +113,13 @@ export const AuditLogsPage = () => {
             <Search size={16} className="search-icon" />
             <input
               type="text"
-              placeholder="Search descriptions, actions, or entities..."
+              placeholder="Search audit trail by description, action, or entity..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
           <button type="submit" className="btn-secondary">
-            Filter
+            Search
           </button>
         </form>
 
@@ -149,12 +161,13 @@ export const AuditLogsPage = () => {
               <th>Entity ID</th>
               <th>Description</th>
               <th>Timestamp</th>
+              <th style={{ textAlign: 'right' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan="7" className="table-empty">
+                <td colSpan="8" className="table-empty">
                   Loading audit logs...
                 </td>
               </tr>
@@ -165,17 +178,24 @@ export const AuditLogsPage = () => {
                     <span className="code-id">#{log.id}</span>
                   </td>
                   <td>
-                    <span
-                      className={`audit-action-pill ${
-                        log.action.includes('FAILED') || log.action.includes('DELETE')
-                          ? 'action-danger'
-                          : log.action.includes('CREATE')
-                          ? 'action-success'
-                          : 'action-info'
-                      }`}
+                    <button
+                      type="button"
+                      className="entity-link-btn"
+                      onClick={() => handleOpenDetails(log)}
+                      title={`View audit details #${log.id}`}
                     >
-                      {log.action}
-                    </span>
+                      <span
+                        className={`audit-action-pill ${
+                          log.action.includes('FAILED') || log.action.includes('DELETE')
+                            ? 'action-danger'
+                            : log.action.includes('CREATE')
+                            ? 'action-success'
+                            : 'action-info'
+                        }`}
+                      >
+                        {log.action}
+                      </span>
+                    </button>
                   </td>
                   <td>
                     {log.user ? (
@@ -197,11 +217,24 @@ export const AuditLogsPage = () => {
                     <div className="audit-desc-cell">{log.description}</div>
                   </td>
                   <td className="audit-time-cell">{formatDateTime(log.createdAt)}</td>
+                  <td style={{ textAlign: 'right' }}>
+                    <div className="actions-cell">
+                      <button
+                        type="button"
+                        className="btn-action btn-action-view"
+                        onClick={() => handleOpenDetails(log)}
+                        title="View Full Audit Telemetry"
+                      >
+                        <Eye size={14} />
+                        <span>View</span>
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan="7" className="table-empty">
+                <td colSpan="8" className="table-empty">
                   No audit log records found matching your query.
                 </td>
               </tr>
@@ -212,6 +245,64 @@ export const AuditLogsPage = () => {
         {/* Server-side Pagination */}
         <Pagination pagination={pagination} onPageChange={(p) => setPage(p)} />
       </div>
+
+      {/* AUDIT LOG DETAILS MODAL */}
+      <Modal
+        isOpen={isDetailsModalOpen}
+        onClose={() => setIsDetailsModalOpen(false)}
+        title={`Audit Trail Record #${selectedLog?.id}`}
+        maxWidth="560px"
+      >
+        {selectedLog && (
+          <div className="modal-form">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
+              <div>
+                <label className="form-label" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Action Type</label>
+                <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{selectedLog.action}</div>
+              </div>
+              <div>
+                <label className="form-label" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Target Entity</label>
+                <div><span className="entity-tag">{selectedLog.entity}</span> (ID: {selectedLog.entityId || 'N/A'})</div>
+              </div>
+              <div>
+                <label className="form-label" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Actor Identity</label>
+                <div style={{ fontSize: '0.85rem' }}>
+                  {selectedLog.user ? `${selectedLog.user.name} (${selectedLog.user.email})` : 'System Automated / Anonymous'}
+                </div>
+              </div>
+              <div>
+                <label className="form-label" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Recorded Timestamp</label>
+                <div style={{ fontSize: '0.85rem' }}>{formatDateTime(selectedLog.createdAt)}</div>
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Audit Event Description</label>
+              <div style={{
+                padding: '0.85rem',
+                backgroundColor: '#f8fafc',
+                border: '1px solid var(--border-light)',
+                borderRadius: '8px',
+                fontSize: '0.875rem',
+                color: 'var(--text-main)',
+                lineHeight: 1.6,
+              }}>
+                {selectedLog.description}
+              </div>
+            </div>
+
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={() => setIsDetailsModalOpen(false)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };

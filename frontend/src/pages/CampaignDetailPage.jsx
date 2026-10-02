@@ -34,6 +34,8 @@ export const CampaignDetailPage = () => {
 
   // Modals
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+  const [isRemoveModalOpen, setIsRemoveModalOpen] = useState(false);
+  const [userToRemove, setUserToRemove] = useState(null);
   const [selectedUserId, setSelectedUserId] = useState('');
   const [assignSubmitting, setAssignSubmitting] = useState(false);
   const [assignError, setAssignError] = useState('');
@@ -105,7 +107,7 @@ export const CampaignDetailPage = () => {
       if (res.data.success) {
         setCampaign(res.data.data);
         setNewStatus(res.data.data.status);
-        setSuccessMessage(`Campaign status updated to ${updatedStatus}`);
+        setSuccessMessage(`✓ Campaign status updated to ${updatedStatus}`);
         setTimeout(() => setSuccessMessage(''), 4000);
       }
     } catch (err) {
@@ -131,7 +133,7 @@ export const CampaignDetailPage = () => {
       if (res.data.success) {
         setIsAssignModalOpen(false);
         setSelectedUserId('');
-        setSuccessMessage('User successfully assigned to campaign!');
+        setSuccessMessage('✓ User successfully assigned to campaign!');
         setTimeout(() => setSuccessMessage(''), 4000);
         // Refresh users
         const usersRes = await api.get(`/campaigns/${id}/users`);
@@ -146,15 +148,23 @@ export const CampaignDetailPage = () => {
     }
   };
 
-  // Remove user
-  const handleRemoveUser = async (targetUserId) => {
-    if (!window.confirm('Remove this user from the campaign?')) return;
+  // Open Remove User Confirmation
+  const handleOpenRemove = (member) => {
+    setUserToRemove(member);
+    setIsRemoveModalOpen(true);
+  };
+
+  // Confirm Remove User
+  const handleConfirmRemove = async () => {
+    if (!userToRemove) return;
     try {
-      const res = await api.delete(`/campaigns/${id}/users/${targetUserId}`);
+      const res = await api.delete(`/campaigns/${id}/users/${userToRemove.id}`);
       if (res.data.success) {
-        setSuccessMessage('User removed from campaign.');
+        setIsRemoveModalOpen(false);
+        setSuccessMessage(`✓ User ${userToRemove.email} removed from campaign.`);
         setTimeout(() => setSuccessMessage(''), 4000);
-        setAssignedUsers(assignedUsers.filter((u) => u.id !== targetUserId));
+        setAssignedUsers(assignedUsers.filter((u) => u.id !== userToRemove.id));
+        setUserToRemove(null);
       }
     } catch (err) {
       alert(err.friendlyMessage || 'Failed to remove user.');
@@ -258,19 +268,19 @@ export const CampaignDetailPage = () => {
           </div>
 
           <div className="meta-item">
-            <span className="meta-label">Organization Scope</span>
-            <span className="meta-value">{user?.organizationName}</span>
+            <span className="meta-label">Assigned Users</span>
+            <span className="meta-value highlight">{assignedUsers.length} Enrolled</span>
           </div>
         </div>
       </div>
 
-      {/* Campaign User Assignments Card */}
-      <div className="card assignments-card">
-        <div className="card-header-row">
+      {/* Campaign Assignments Table */}
+      <div className="assignments-section">
+        <div className="section-header-row">
           <div>
-            <h3 className="section-title">Assigned Security Personnel ({assignedUsers.length})</h3>
+            <h3 className="section-title">Enrolled Target Users</h3>
             <p className="section-subtitle">
-              Personnel enrolled in this initiative. Must strictly belong to {user?.organizationName}.
+              Organization members assigned to participate in this security initiative.
             </p>
           </div>
 
@@ -288,8 +298,8 @@ export const CampaignDetailPage = () => {
               <tr>
                 <th>Member Name</th>
                 <th>Email Address</th>
-                <th>Role</th>
-                <th>Assigned Date</th>
+                <th>Role Scope</th>
+                <th>Enrolled Date</th>
                 {canManageCampaigns && <th style={{ textAlign: 'right' }}>Actions</th>}
               </tr>
             </thead>
@@ -304,15 +314,17 @@ export const CampaignDetailPage = () => {
                     <td>
                       <RoleBadge role={member.role} />
                     </td>
-                    <td>{formatDateTime(member.assignedAt)}</td>
+                    <td>{formatDate(member.assignedAt)}</td>
                     {canManageCampaigns && (
                       <td style={{ textAlign: 'right' }}>
                         <button
-                          className="action-btn delete"
-                          title="Remove from campaign"
-                          onClick={() => handleRemoveUser(member.id)}
+                          type="button"
+                          className="btn-action btn-action-delete"
+                          title="Remove user from campaign"
+                          onClick={() => handleOpenRemove(member)}
                         >
-                          <Trash2 size={15} />
+                          <Trash2 size={14} />
+                          <span>Remove</span>
                         </button>
                       </td>
                     )}
@@ -386,6 +398,40 @@ export const CampaignDetailPage = () => {
             </button>
           </div>
         </form>
+      </Modal>
+
+      {/* REMOVE USER CONFIRMATION MODAL */}
+      <Modal
+        isOpen={isRemoveModalOpen}
+        onClose={() => setIsRemoveModalOpen(false)}
+        title="Remove User from Campaign?"
+        maxWidth="460px"
+      >
+        <div className="modal-form">
+          <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+            Are you sure you want to remove <strong>"{userToRemove?.name}"</strong> ({userToRemove?.email}) from this campaign?
+            <br /><br />
+            <span style={{ color: '#b91c1c', fontWeight: 600 }}>This action removes user participation and records an audit trail.</span>
+          </p>
+
+          <div className="modal-actions">
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => setIsRemoveModalOpen(false)}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="btn-danger"
+              onClick={handleConfirmRemove}
+            >
+              <Trash2 size={14} />
+              <span>Remove User</span>
+            </button>
+          </div>
+        </div>
       </Modal>
     </div>
   );

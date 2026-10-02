@@ -37,11 +37,6 @@ export const LoginPage = () => {
     }
   };
 
-  const handleQuickLogin = (demoEmail, demoPassword) => {
-    setEmail(demoEmail);
-    setPassword(demoPassword);
-    setError('');
-  };
 
   return (
     <div className="login-page">
@@ -118,55 +113,6 @@ export const LoginPage = () => {
             <ArrowRight size={16} />
           </button>
         </form>
-
-        {/* Demo Quick-Fill Section */}
-        <div className="demo-credentials-section">
-          <div className="demo-divider">
-            <span>QUICK-FILL ASSESSMENT DEMO CREDENTIALS</span>
-          </div>
-
-          <div className="demo-grid">
-            {/* Tenant 1 Admin */}
-            <button
-              type="button"
-              className="demo-pill"
-              onClick={() => handleQuickLogin('admin@tenant1.com', 'Admin@123')}
-            >
-              <div className="demo-pill-title">🏢 Tenant 1 • Admin</div>
-              <div className="demo-pill-sub">admin@tenant1.com</div>
-            </button>
-
-            {/* Tenant 1 Manager */}
-            <button
-              type="button"
-              className="demo-pill"
-              onClick={() => handleQuickLogin('manager@tenant1.com', 'Manager@123')}
-            >
-              <div className="demo-pill-title">🏢 Tenant 1 • Manager</div>
-              <div className="demo-pill-sub">manager@tenant1.com</div>
-            </button>
-
-            {/* Tenant 1 SecOps User */}
-            <button
-              type="button"
-              className="demo-pill"
-              onClick={() => handleQuickLogin('user@tenant1.com', 'User@123')}
-            >
-              <div className="demo-pill-title">🏢 Tenant 1 • User (Restricted)</div>
-              <div className="demo-pill-sub">user@tenant1.com</div>
-            </button>
-
-            {/* Tenant 2 Admin */}
-            <button
-              type="button"
-              className="demo-pill demo-pill-t2"
-              onClick={() => handleQuickLogin('admin@tenant2.com', 'Admin@123')}
-            >
-              <div className="demo-pill-title">🏢 Tenant 2 • Admin</div>
-              <div className="demo-pill-sub">admin@tenant2.com</div>
-            </button>
-          </div>
-        </div>
 
         {/* Security Footer */}
         <div className="login-footer">
